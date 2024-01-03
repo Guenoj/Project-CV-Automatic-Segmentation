@@ -203,6 +203,7 @@ class SamPt(nn.Module):
         if not self.use_point_reinit:
             trajectories, visibilities, logits, scores, scores_per_frame = self._forward_random(images, query_points) # from random query_points
             # trajectories, visibilities, logits, scores, scores_per_frame = self._forward(images, query_points)
+            print(f'traj : {trajectories.shape}, n_frames, n_masks, n_points_per_masks : {n_frames, n_masks, n_points_per_mask}')
         else:
             trajectories, visibilities, logits, scores, scores_per_frame = self._forward_w_reinit(images, query_points)
 
