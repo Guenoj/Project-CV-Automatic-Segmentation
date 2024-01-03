@@ -473,6 +473,10 @@ class SamPt(nn.Module):
 
         visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2)
         visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
+        zeros = np.zeros((1, 6, 1))
+
+        # Concatenate the zeros column with the original tensor
+        visible_positive_points_1 = np.concatenate([zeros, visible_positive_points_1], axis=-1)
 
         trajectories, visibilities = self._track_points(images, visible_positive_points_1)
         _, logits, scores_per_frame = self._apply_sam_to_trajectories(images, trajectories, visibilities)
