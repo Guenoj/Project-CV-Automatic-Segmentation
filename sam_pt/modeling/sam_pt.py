@@ -171,10 +171,18 @@ class SamPt(nn.Module):
         if video.get("query_masks") is not None:  # E.g., when evaluating on the VOS task
             assert video.get("query_points") is None
             print("SAM-PT: Using query masks")
-            query_masks = video["query_masks"].float()
+            
+            # need to query random points within first image
             query_points_timestep = video["query_point_timestep"]
-            query_points = self.extract_query_points(images, query_masks, query_points_timestep)
+            query_points = self.extract_query_points_random(images, query_points_timestep)
             query_scores = None
+
+
+            # Next block is the original code
+            #query_masks = video["query_masks"].float()
+            #query_points_timestep = video["query_point_timestep"]
+            #query_points = self.extract_query_points(images, query_masks, query_points_timestep)
+            #query_scores = None
         elif video.get("query_points") is not None:  # E.g., when evaluating on the railway demo
             print("SAM-PT: Using query points")
             query_points = video["query_points"]
@@ -193,7 +201,8 @@ class SamPt(nn.Module):
         # Run tracking
         self.frame_annotations = [[] for _ in range(n_frames)]
         if not self.use_point_reinit:
-            trajectories, visibilities, logits, scores, scores_per_frame = self._forward(images, query_points)
+            trajectories, visibilities, logits, scores, scores_per_frame = self._forward_random(images, query_points) # from random query_points
+            # trajectories, visibilities, logits, scores, scores_per_frame = self._forward(images, query_points)
         else:
             trajectories, visibilities, logits, scores, scores_per_frame = self._forward_w_reinit(images, query_points)
 
@@ -234,6 +243,57 @@ class SamPt(nn.Module):
         }
 
         return results_dict
+    
+    def extract_query_points_random(self, images, query_points_timestep):
+        """
+        Extracts query points from the given images based on points' timesteps.
+
+        Parameters
+        ----------
+        images : torch.Tensor
+            The frames of the video from which to extract the query points,
+            as a uint8 tensor of shape (num_frames, channels, height, width).
+        query_points_timestep : torch.Tensor
+            The query point timesteps as float32 tensor of shape (num_masks,).
+
+        Returns
+        -------
+        torch.Tensor
+            A float32 tensor representing the query points extracted from the images. The tensor has shape
+            (1, n_points, 3) and contains the (t, x, y) values of the query points, where
+            t is the timestep defining the query video frame and x, y are the coordinates of the query point.
+
+        Notes
+        -----
+        This function extracts both positive and negative points but are not determined now.
+        """
+        query_points_timestep = query_points_timestep.cpu()
+
+        _, _, height, width = images.shape
+        fake_query_masks = torch.ones(( 1, height, width))
+
+        query_points_xy = SamPt._extract_query_points_xy(
+            images=images,
+            query_masks=fake_query_masks,
+            query_points_timestep=query_points_timestep,
+            point_selection_method=self.positive_point_selection_method,
+            points_per_mask=self.positive_points_per_mask, #lets take positive_points as number of points for now
+        ) # get [query_mask1, query_mask2]
+        # Next block is not run as we do not know negative points
+        #if self.negative_points_per_mask > 0:
+        #    negative_query_masks = [1 - qm for qm in query_masks]
+        #    negative_query_points_xy = SamPt._extract_query_points_xy(
+        #        images=images,
+        #        query_masks=negative_query_masks,
+        #        query_points_timestep=query_points_timestep,
+        #        point_selection_method=self.negative_point_selection_method,
+        #        points_per_mask=self.negative_points_per_mask,
+        #    )
+        #    query_points_xy = [torch.cat(x, dim=0) for x in zip(query_points_xy, negative_query_points_xy)]
+        query_points_xy = torch.stack(query_points_xy, dim=0) #concatenate into tensors [query_points] -> shape : (n_masks, n_pts_per_masks,2)
+        query_points_timestep = query_points_timestep[:, None, None].repeat(1, query_points_xy.shape[1], 1) # adapt times_step dim to (n_masks, n_pts_per_mask, 1)
+        query_points = torch.concat([query_points_timestep, query_points_xy], dim=2) # shape -> (n_masks, n_pts_per_masks, 3) which contains (t, x, y), t time_step
+        return query_points
 
     def extract_query_points(self, images, query_masks, query_points_timestep):
         """
@@ -333,6 +393,92 @@ class SamPt(nn.Module):
         )
         query_masks = query_masks_logits > self.sam_predictor.model.mask_threshold
         return query_masks[0]
+
+    def _forward_random(self, images, query_points):
+        """
+        Forward pass without point re-initialization with random points.
+
+        Parameters
+        ----------
+        images : torch.Tensor
+            The frames of the video as a uint8 tensor of shape (num_frames, channels, height, width).
+        query_points : torch.Tensor
+            A float32 tensor representing the query points that define the query masks. The tensor has shape
+            (num_masks, n_points_per_mask, 3) and contains the (t, x, y) values of the query points, where
+            t is the timestep defining the query video frame and x, y are the coordinates of the query point.
+        """
+        trajectories, visibilities = self._track_points(images, query_points) #traj shape trajectories : shape (num_frames, num_masks, points_per_mask, 2) containing the predicted trajectories.
+        # and visibilities : shape (num_frames, num_masks, points_per_mask) containing the predicted visibilities.
+        # There are multiple masks but queries are random in there, we want only 1 query
+        trajectories2, visibilities2 = trajectories.detach().clone(), visibilities.detach().clone()
+        trajectories2 = trajectories2.reshape(trajectories2.shape[0], trajectories2.shape[1]*trajectories2.shape[2], trajectories2.shape[3])
+        visibilities2 = visibilities2.reshape(visibilities2.shape[0], visibilities2.shape[1]*visibilities2.shape[2])
+        
+        # get visibible points in frame 1 & 2
+        point_coords_frame1 = trajectories2[1, :, :]
+        point_coords_frame2 = trajectories2[2, :, :]
+
+        visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu().numpy()
+        visible_point_coords_frame2 = point_coords_frame2[visibilities2[2, :] == 1, :].cpu().numpy()
+
+        def compute_homography(self, visible_point_coords_frame1, visible_point_coords_frame2):
+                """"
+                Compute homography for two sets of points
+                """
+                A = np.zeros((visible_point_coords_frame1.shape[0]*3, 9))
+                visi1 = visible_point_coords_frame1.numpy()
+                visi2 = visible_point_coords_frame2.numpy()
+                x_1 = visi1[:,0]
+                y_1 = visi1[:,1]
+                x_2 = visi2[:,0]
+                y_2 = visi2[:,1]
+                for i in range(visible_point_coords_frame1.shape[0]):
+                    A[3*i:3*(i+1),:] = np.array([[x_1[i], y_1[i], 1, 0, 0, 0, -x_1[i]*x_2[i], -x_2[i]*y_1[i], -x_2[i]],
+                            [0, 0, 0, x_1[i], y_1[i], 1, -y_2[i]*x_1[i], -y_2[i]*y_1[i], -y_2[i]],
+                            [-x_1[i]*y_2[i], -y_1[i]*y_2[i], -y_2[i], x_2[i]*x_1[i], x_2[i]*y_1[i], x_2[i], 0, 0, 0]])
+
+                # Solve for the homography using SVD
+                _, _, Vt = np.linalg.svd(A)
+                H = Vt[-1, :].reshape(3, 3)
+
+                # Normalize the homography matrix
+                H /= H[2, 2]
+
+                return H
+        
+        def points_homographed(homography, visible_point_coords_frame1):
+            """
+            Computed points passed through a homography
+            """
+            visif1 = torch.cat((visible_point_coords_frame1,torch.ones(visible_point_coords_frame1.shape[0],1)), dim=1).numpy()
+            visi_homo = np.dot(homography, visif1.T)[0:2,:].T
+            return torch.tensor(visi_homo)
+        
+        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2):
+            """
+            Find points who respect the less the homography. They will be foreground points, ie positive points.
+            """
+            num_pts = visible_point_coords_frame1.shape[0]
+            H = compute_homography(visible_point_coords_frame1, visible_point_coords_frame2)
+            pts_homo = points_homographed(H, visible_point_coords_frame1)
+            sorted_index = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo, dim = 1))[0:num_pts//10]
+
+            H_true_as = compute_homography(visible_point_coords_frame1[sorted_index,:], visible_point_coords_frame2[sorted_index,:])
+            pts_homo2 = points_homographed(H_true_as, visible_point_coords_frame1)
+            sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*95//100:]
+            outliers_fr1 = visible_point_coords_frame1[sorted_index2, :]
+            outliers_fr2 = visible_point_coords_frame2[sorted_index2, :]
+
+            return outliers_fr1, outliers_fr2
+
+        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2)
+        visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
+
+        trajectories, visibilities = self._track_points(images, visible_positive_points_1)
+        _, logits, scores_per_frame = self._apply_sam_to_trajectories(images, trajectories, visibilities)
+        scores = scores_per_frame.mean(dim=0)
+        return trajectories, visibilities, logits, scores, scores_per_frame
+    
 
     def _forward(self, images, query_points):
         """
