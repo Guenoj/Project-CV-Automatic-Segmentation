@@ -179,7 +179,7 @@ class SamPt(nn.Module):
 
 
             # Next block is the original code
-            #query_masks = video["query_masks"].float()
+            query_masks = video["query_masks"].float()
             #query_points_timestep = video["query_point_timestep"]
             #query_points = self.extract_query_points(images, query_masks, query_points_timestep)
             #query_scores = None
