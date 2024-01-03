@@ -418,8 +418,8 @@ class SamPt(nn.Module):
         point_coords_frame1 = trajectories2[1, :, :]
         point_coords_frame2 = trajectories2[2, :, :]
 
-        visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu().numpy()
-        visible_point_coords_frame2 = point_coords_frame2[visibilities2[2, :] == 1, :].cpu().numpy()
+        visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu()
+        visible_point_coords_frame2 = point_coords_frame2[visibilities2[2, :] == 1, :].cpu()
 
         def compute_homography(visible_point_coords_frame1, visible_point_coords_frame2):
                 """"
