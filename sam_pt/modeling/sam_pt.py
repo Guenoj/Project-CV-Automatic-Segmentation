@@ -421,7 +421,7 @@ class SamPt(nn.Module):
         visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu().numpy()
         visible_point_coords_frame2 = point_coords_frame2[visibilities2[2, :] == 1, :].cpu().numpy()
 
-        def compute_homography(self, visible_point_coords_frame1, visible_point_coords_frame2):
+        def compute_homography(visible_point_coords_frame1, visible_point_coords_frame2):
                 """"
                 Compute homography for two sets of points
                 """
@@ -446,7 +446,7 @@ class SamPt(nn.Module):
 
                 return H
         
-        def points_homographed(self, homography, visible_point_coords_frame1):
+        def points_homographed(homography, visible_point_coords_frame1):
             """
             Computed points passed through a homography
             """
@@ -454,24 +454,24 @@ class SamPt(nn.Module):
             visi_homo = np.dot(homography, visif1.T)[0:2,:].T
             return torch.tensor(visi_homo)
         
-        def outliers_homograph(self, visible_point_coords_frame1, visible_point_coords_frame2):
+        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2):
             """
             Find points who respect the less the homography. They will be foreground points, ie positive points.
             """
             num_pts = visible_point_coords_frame1.shape[0]
-            H = self.compute_homography(visible_point_coords_frame1, visible_point_coords_frame2)
-            pts_homo = self.points_homographed(H, visible_point_coords_frame1)
+            H = compute_homography(visible_point_coords_frame1, visible_point_coords_frame2)
+            pts_homo = points_homographed(H, visible_point_coords_frame1)
             sorted_index = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo, dim = 1))[0:num_pts//10]
 
-            H_true_as = self.compute_homography(visible_point_coords_frame1[sorted_index,:], visible_point_coords_frame2[sorted_index,:])
-            pts_homo2 = self.points_homographed(H_true_as, visible_point_coords_frame1)
+            H_true_as = compute_homography(visible_point_coords_frame1[sorted_index,:], visible_point_coords_frame2[sorted_index,:])
+            pts_homo2 = points_homographed(H_true_as, visible_point_coords_frame1)
             sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*95//100:]
             outliers_fr1 = visible_point_coords_frame1[sorted_index2, :]
             outliers_fr2 = visible_point_coords_frame2[sorted_index2, :]
 
             return outliers_fr1, outliers_fr2
 
-        visible_positive_points_1, _ = self.outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2)
+        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2)
         visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
 
         trajectories, visibilities = self._track_points(images, visible_positive_points_1)
