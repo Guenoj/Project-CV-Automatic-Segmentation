@@ -421,7 +421,7 @@ class SamPt(nn.Module):
         point_coords_frame1 = trajectories2[1, :, :]
         point_coords_frame2 = trajectories2[2, :, :]
 
-        visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu()
+        visible_point_coords_frame1 = point_coords_frame1[visibilities2[2, :] == 1, :].cpu() # visible points in frame 1 that are also visible in frame 2
         visible_point_coords_frame2 = point_coords_frame2[visibilities2[2, :] == 1, :].cpu()
 
         def compute_homography(visible_point_coords_frame1, visible_point_coords_frame2):
@@ -457,7 +457,7 @@ class SamPt(nn.Module):
             visi_homo = np.dot(homography, visif1.T)[0:2,:].T
             return torch.tensor(visi_homo)
         
-        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2):
+        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visible):
             """
             Find points who respect the less the homography. They will be foreground points, ie positive points.
             """
@@ -468,7 +468,23 @@ class SamPt(nn.Module):
 
             H_true_as = compute_homography(visible_point_coords_frame1[sorted_index,:], visible_point_coords_frame2[sorted_index,:])
             pts_homo2 = points_homographed(H_true_as, visible_point_coords_frame1)
-            sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
+
+            # filter by points that are in-frame 80% of the video
+
+            num_frames = visible.shape[0]  # Total number of frames
+            num_points = visible.shape[1]  # Total number of points per frame
+            frames_threshold = int(0.12 * num_frames)  # 12% of total frames
+
+            # Counting how many times each point is out of frame
+            out_of_frame_count = torch.sum(visible != -2, axis=0)
+
+            # Selecting points that are out of frame for at least 12% of the video
+            points_percent_out = torch.where(out_of_frame_count >= frames_threshold)[0]
+
+            sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2[points_percent_out] - pts_homo2[points_percent_out], dim = 1))[pts_homo2.shape[0]*98//100:]
+
+
+            #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
             outliers_fr1 = visible_point_coords_frame1[sorted_index2, :]
             outliers_fr2 = visible_point_coords_frame2[sorted_index2, :]
 
