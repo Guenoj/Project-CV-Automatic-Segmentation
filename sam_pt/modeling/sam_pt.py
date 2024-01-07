@@ -490,7 +490,7 @@ class SamPt(nn.Module):
 
             return outliers_fr1, outliers_fr2
 
-        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2)
+        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visibilities2)
         visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
         zeros = torch.zeros(1, visible_positive_points_1.shape[1], 1)
 
