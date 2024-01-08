@@ -490,6 +490,10 @@ class SamPt(nn.Module):
             sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :].cpu() - pts_homo2, dim = 1))
             #[pts_homo2.shape[0]*98//100:]
 
+            print(f' equal : {pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
+            print(f' equal 2 : {pts_coords_fr2[final_selected_points, :] == visible_point_coords_frame2}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
+
+
 
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
             outliers_fr1 = pts_coords_fr1[sorted_index2, :]
