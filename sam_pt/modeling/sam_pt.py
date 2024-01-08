@@ -493,8 +493,11 @@ class SamPt(nn.Module):
             print(f' equal : {pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
             print(f' equal 2 : {pts_coords_fr2[final_selected_points, :] == visible_point_coords_frame2}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
 
+            pts_homo2bis = points_homographed(H_true_as, visible_point_coords_frame1)
+            sorted_index2bis = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2bis, dim = 1))[num_pts*98//100:]
 
-
+            print(f'homo2 : {pts_homo2bis.shape}, {pts_homo2bis == pts_homo2}, {torch.sum(pts_homo2bis == pts_homo2)}')
+            print(f'sorted_index2 : {sorted_index2bis.shape}, {sorted_index2bis == sorted_index2}, {torch.sum(sorted_index2bis == sorted_index2)}')
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
             outliers_fr1 = pts_coords_fr1[sorted_index2, :]
             outliers_fr2 = pts_coords_fr2[sorted_index2, :]
