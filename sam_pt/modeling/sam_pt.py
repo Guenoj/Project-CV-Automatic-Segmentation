@@ -502,11 +502,11 @@ class SamPt(nn.Module):
             outliers_fr1_with_in = pts_coords_fr1[sorted_index2, :]
             outliers_fr2_with_in = pts_coords_fr2[sorted_index2, :]
 
-            print(f'out1 : {outliers_fr1.shape} {torch.sum(outliers_fr1 == outliers_fr1_with_in)}')
-            print(f'out2 : {outliers_fr2.shape} {torch.sum(outliers_fr2 == outliers_fr2_with_in)}')
-
             outliers_fr1 = visible_point_coords_frame1[sorted_index2bis, :]
             outliers_fr2 = visible_point_coords_frame2[sorted_index2bis, :]
+
+            print(f'out1 : {outliers_fr1.shape} {torch.sum(outliers_fr1 == outliers_fr1_with_in)}')
+            print(f'out2 : {outliers_fr2.shape} {torch.sum(outliers_fr2 == outliers_fr2_with_in)}')
 
             return outliers_fr1, outliers_fr2
 
