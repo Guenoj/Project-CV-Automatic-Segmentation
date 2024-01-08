@@ -500,7 +500,7 @@ class SamPt(nn.Module):
             print(f'sorted_index2 : {sorted_index2bis.shape}, {sorted_index2bis == sorted_index2}, {torch.sum(sorted_index2bis == sorted_index2)}')
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
             outliers_fr1_with_in = pts_coords_fr1[final_selected_points, :][sorted_index2, :]
-            outliers_fr2_with_in = pts_coords_fr1[final_selected_points, :][sorted_index2, :]
+            outliers_fr2_with_in = pts_coords_fr2[final_selected_points, :][sorted_index2, :]
 
             outliers_fr1 = visible_point_coords_frame1[sorted_index2bis, :]
             outliers_fr2 = visible_point_coords_frame2[sorted_index2bis, :]
@@ -508,7 +508,7 @@ class SamPt(nn.Module):
             print(f'out1 : {outliers_fr1.shape} {torch.sum(outliers_fr1 == outliers_fr1_with_in)}')
             print(f'out2 : {outliers_fr2.shape} {torch.sum(outliers_fr2 == outliers_fr2_with_in)}')
 
-            return outliers_fr1, outliers_fr2
+            return outliers_fr1_with_in, outliers_fr1_with_in
 
         visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visibilities2, point_coords_frame1, point_coords_frame2)
         visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
