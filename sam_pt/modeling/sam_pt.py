@@ -471,12 +471,12 @@ class SamPt(nn.Module):
             # filter by points that are in-frame 78% of the video
             num_frames = visible.shape[0]  # Total number of frames
             num_points = visible.shape[1]  # Total number of points per frame
-            frames_threshold = int(0.60 * num_frames)  # 78% of total frames
+            frames_threshold = int(0.70 * num_frames)  # 78% of total frames
 
             in_of_frame_count = torch.sum(visible != -2, axis=0) # Counting how many times each point is in frame
 
             # Selecting points that are in of frame for at least 78% of the video
-            points_percent_in = torch.where(in_of_frame_count >= 0)[0]
+            points_percent_in = torch.where(frames_threshold >= 0)[0]
 
             visible_in_second_frame = torch.where(visible[2, :] == 1)[0]
             
@@ -487,7 +487,7 @@ class SamPt(nn.Module):
             # pass those points to the homography
             pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points, :].cpu())
 
-            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :].cpu() - pts_homo2, dim = 1))[pts_homo2.shape[0]*98//100:]
+            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :].cpu() - pts_homo2, dim = 1))[pts_homo2.shape[0]*95//100:]
             
 
             print(f' equal : {pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
