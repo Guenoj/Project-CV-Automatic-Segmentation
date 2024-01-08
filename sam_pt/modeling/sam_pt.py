@@ -482,9 +482,9 @@ class SamPt(nn.Module):
             final_selected_points = points_percent_in[visible_in_second_frame[points_percent_in]] # index points visible in frame 2 and in frame more than 78%
 
             # pass those points to the homography
-            pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points])
+            pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points, :])
 
-            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points] - pts_homo2, dim = 1))[pts_homo2.shape[0]*98//100:]
+            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :] - pts_homo2, dim = 1))[pts_homo2.shape[0]*98//100:]
 
 
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
