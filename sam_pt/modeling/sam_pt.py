@@ -457,7 +457,7 @@ class SamPt(nn.Module):
             visi_homo = np.dot(homography, visif1.T)[0:2,:].T
             return torch.tensor(visi_homo)
         
-        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visible):
+        def outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visible, pts_coords_fr1, pts_coords_fr2):
             """
             Find points who respect the less the homography. They will be foreground points, ie positive points.
             """
@@ -467,21 +467,24 @@ class SamPt(nn.Module):
             sorted_index = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo, dim = 1))[0:num_pts//10]
 
             H_true_as = compute_homography(visible_point_coords_frame1[sorted_index,:], visible_point_coords_frame2[sorted_index,:])
-            pts_homo2 = points_homographed(H_true_as, visible_point_coords_frame1)
 
-            # filter by points that are in-frame 80% of the video
-
+            # filter by points that are in-frame 78% of the video
             num_frames = visible.shape[0]  # Total number of frames
             num_points = visible.shape[1]  # Total number of points per frame
-            frames_threshold = int(0.12 * num_frames)  # 12% of total frames
+            frames_threshold = int(0.78 * num_frames)  # 78% of total frames
 
-            # Counting how many times each point is out of frame
-            out_of_frame_count = torch.sum(visible != -2, axis=0)
+            in_of_frame_count = torch.sum(visible != -2, axis=0) # Counting how many times each point is out of frame
 
-            # Selecting points that are out of frame for at least 12% of the video
-            points_percent_out = torch.where(out_of_frame_count >= frames_threshold)[0]
+            # Selecting points that are in of frame for at least 78% of the video
+            points_percent_in = torch.where(in_of_frame_count >= frames_threshold)[0]
 
-            sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2[points_percent_out] - pts_homo2[points_percent_out], dim = 1))[pts_homo2.shape[0]*98//100:]
+            visible_in_second_frame = visible[2, :] == 1
+            final_selected_points = points_percent_in[visible_in_second_frame[points_percent_in]] # index points visible in frame 2 and in frame more than 78%
+
+            # pass those points to the homography
+            pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points])
+
+            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points] - pts_homo2, dim = 1))[pts_homo2.shape[0]*98//100:]
 
 
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
@@ -490,7 +493,7 @@ class SamPt(nn.Module):
 
             return outliers_fr1, outliers_fr2
 
-        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visibilities2)
+        visible_positive_points_1, _ = outliers_homograph(visible_point_coords_frame1, visible_point_coords_frame2, visibilities2, point_coords_frame1, point_coords_frame2)
         visible_positive_points_1  = visible_positive_points_1.reshape(1, visible_positive_points_1.shape[0], 2)
         zeros = torch.zeros(1, visible_positive_points_1.shape[1], 1)
 
