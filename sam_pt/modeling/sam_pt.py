@@ -478,8 +478,10 @@ class SamPt(nn.Module):
             # Selecting points that are in of frame for at least 78% of the video
             points_percent_in = torch.where(in_of_frame_count >= 0)[0]
 
-            visible_in_second_frame = visible[2, :] == 1
-            final_selected_points = points_percent_in[visible_in_second_frame[points_percent_in]] # index points visible in frame 2 and in frame more than 78%
+            visible_in_second_frame = torch.where(visible[2, :] == 1)[0]
+            
+
+            final_selected_points = torch.tensor(np.intersect1d(points_percent_in.numpy(), visible_in_second_frame.numpy())) # index points visible in frame 2 and in frame more than 78%
             print(f' final select : {final_selected_points}')
             print(f' shape : {final_selected_points.shape}  & {pts_coords_fr1.shape} & {visible_point_coords_frame1.shape}')
             # pass those points to the homography
