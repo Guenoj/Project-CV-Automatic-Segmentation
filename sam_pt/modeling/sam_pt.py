@@ -476,7 +476,7 @@ class SamPt(nn.Module):
             in_of_frame_count = torch.sum(visible != -2, axis=0) # Counting how many times each point is in frame
 
             # Selecting points that are in of frame for at least 78% of the video
-            points_percent_in = torch.where(in_of_frame_count >= frames_threshold)[0]
+            points_percent_in = torch.where(in_of_frame_count >= 0)[0]
 
             visible_in_second_frame = visible[2, :] == 1
             final_selected_points = points_percent_in[visible_in_second_frame[points_percent_in]] # index points visible in frame 2 and in frame more than 78%
