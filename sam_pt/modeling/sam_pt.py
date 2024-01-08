@@ -481,7 +481,7 @@ class SamPt(nn.Module):
             visible_in_second_frame = visible[2, :] == 1
             final_selected_points = points_percent_in[visible_in_second_frame[points_percent_in]] # index points visible in frame 2 and in frame more than 78%
             print(f' final select : {final_selected_points}')
-            print(f' shape : {final_selected_points.shape}  & {pts_coords_fr1}')
+            print(f' shape : {final_selected_points.shape}  & {pts_coords_fr1.shape} & {visible_point_coords_frame1.shape}')
             # pass those points to the homography
             pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points, :])
 
