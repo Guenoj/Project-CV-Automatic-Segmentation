@@ -499,8 +499,8 @@ class SamPt(nn.Module):
             print(f'homo2 : {pts_homo2bis.shape}, {pts_homo2bis == pts_homo2}, {torch.sum(pts_homo2bis == pts_homo2)}')
             print(f'sorted_index2 : {sorted_index2bis.shape}, {sorted_index2bis == sorted_index2}, {torch.sum(sorted_index2bis == sorted_index2)}')
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
-            outliers_fr1_with_in = pts_coords_fr1[sorted_index2, :]
-            outliers_fr2_with_in = pts_coords_fr2[sorted_index2, :]
+            outliers_fr1_with_in = pts_coords_fr1[final_selected_points, :][sorted_index2, :]
+            outliers_fr2_with_in = pts_coords_fr1[final_selected_points, :][sorted_index2, :]
 
             outliers_fr1 = visible_point_coords_frame1[sorted_index2bis, :]
             outliers_fr2 = visible_point_coords_frame2[sorted_index2bis, :]
