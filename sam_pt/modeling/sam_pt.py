@@ -488,8 +488,8 @@ class SamPt(nn.Module):
 
 
             #sorted_index2 = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2, dim = 1))[num_pts*98//100:]
-            outliers_fr1 = visible_point_coords_frame1[sorted_index2, :]
-            outliers_fr2 = visible_point_coords_frame2[sorted_index2, :]
+            outliers_fr1 = pts_coords_fr1[sorted_index2, :]
+            outliers_fr2 = pts_coords_fr2[sorted_index2, :]
 
             return outliers_fr1, outliers_fr2
 
