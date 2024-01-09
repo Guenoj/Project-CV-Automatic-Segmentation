@@ -519,6 +519,7 @@ class SamPt(nn.Module):
 
             pts_homo2bis = points_homographed(H_true_as, visible_point_coords_frame1)
 
+            print(f'sorting : {torch.sort(torch.norm(visible_point_coords_frame2 - pts_homo2bis, dim = 1))}')
             sorted_index2bis = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2bis, dim = 1))[num_pts*98//100:]
 
             #print(f'homo2 : {pts_homo2bis.shape}, {pts_homo2bis == pts_homo2}, {torch.sum(pts_homo2bis == pts_homo2)}')
