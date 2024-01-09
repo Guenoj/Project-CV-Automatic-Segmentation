@@ -487,13 +487,38 @@ class SamPt(nn.Module):
             # pass those points to the homography
             pts_homo2 = points_homographed(H_true_as, pts_coords_fr1[final_selected_points, :].cpu())
 
-            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :].cpu() - pts_homo2, dim = 1))[pts_homo2.shape[0]*98//100:]
+            # num of points to conserve
+            if pts_homo2.shape[0] < 4 :
+                num_postive_pts = 1
+            elif pts_homo2.shape[0] < 8 :
+                num_postive_pts = 2
+            elif pts_homo2.shape[0] < 15 :
+                num_postive_pts = 3
+            elif pts_homo2.shape[0] < 20 :
+                num_postive_pts = 4
+            elif pts_homo2.shape[0] < 30 :
+                num_postive_pts = 5
+            elif pts_homo2.shape[0] < 40 :
+                num_postive_pts = 6
+            elif pts_homo2.shape[0] < 70 :
+                num_postive_pts = 9
+            elif pts_homo2.shape[0] < 150:
+                num_postive_pts = pts_homo2.shape[0]*10//100
+            elif pts_homo2.shape[0] < 300:
+                num_postive_pts = pts_homo2.shape[0]*5//100
+            else :
+                num_postive_pts = pts_homo2.shape[0]*3//100
+
+
+
+            sorted_index2 = torch.argsort(torch.norm(pts_coords_fr2[final_selected_points, :].cpu() - pts_homo2, dim = 1))[pts_homo2.shape[0] - num_postive_pts:]
             
 
             #print(f' equal : {pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
             #print(f' equal 2 : {pts_coords_fr2[final_selected_points, :] == visible_point_coords_frame2}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame1)}')
 
             pts_homo2bis = points_homographed(H_true_as, visible_point_coords_frame1)
+
             sorted_index2bis = torch.argsort(torch.norm(visible_point_coords_frame2 - pts_homo2bis, dim = 1))[num_pts*98//100:]
 
             #print(f'homo2 : {pts_homo2bis.shape}, {pts_homo2bis == pts_homo2}, {torch.sum(pts_homo2bis == pts_homo2)}')
