@@ -489,25 +489,25 @@ class SamPt(nn.Module):
 
             # num of points to conserve
             if pts_homo2.shape[0] < 4 :
-                num_postive_pts = 1
+                num_postive_pts = pts_homo2.shape[0]    # if not a lot of points are conserved, meaning backgrounds moves fast then not a lot of points of the background
             elif pts_homo2.shape[0] < 8 :
-                num_postive_pts = 2
+                num_postive_pts = pts_homo2.shape[0] - 1
             elif pts_homo2.shape[0] < 15 :
-                num_postive_pts = 3
+                num_postive_pts = max(pts_homo2.shape[0] - 5, 7)
             elif pts_homo2.shape[0] < 20 :
-                num_postive_pts = 4
-            elif pts_homo2.shape[0] < 30 :
                 num_postive_pts = 5
-            elif pts_homo2.shape[0] < 40 :
+            elif pts_homo2.shape[0] < 30 :
                 num_postive_pts = 6
+            elif pts_homo2.shape[0] < 40 :
+                num_postive_pts = 7
             elif pts_homo2.shape[0] < 70 :
-                num_postive_pts = 9
+                num_postive_pts = 8
             elif pts_homo2.shape[0] < 150:
-                num_postive_pts = pts_homo2.shape[0]*10//100
+                num_postive_pts = pts_homo2.shape[0]*8//100
             elif pts_homo2.shape[0] < 300:
-                num_postive_pts = pts_homo2.shape[0]*5//100
+                num_postive_pts = pts_homo2.shape[0]*4//100
             else :
-                num_postive_pts = pts_homo2.shape[0]*3//100
+                num_postive_pts = pts_homo2.shape[0]*2//100
 
 
 
