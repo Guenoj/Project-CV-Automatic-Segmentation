@@ -201,7 +201,7 @@ class SamPt(nn.Module):
         # Run tracking
         self.frame_annotations = [[] for _ in range(n_frames)]
         if not self.use_point_reinit:
-            trajectories, visibilities, logits, scores, scores_per_frame = self._forward_random(images, query_points) # from random query_points
+            trajectories, visibilities, logits, scores, scores_per_frame, query_points_to_visual = self._forward_random(images, query_points) # from random query_points
             # trajectories, visibilities, logits, scores, scores_per_frame = self._forward(images, query_points)
             print(f'traj : {trajectories.shape}, n_frames, n_masks, n_points_per_masks : {n_frames, n_masks, n_points_per_mask}')
             n_points_per_mask = trajectories.shape[2] # caliber positive points
@@ -243,6 +243,7 @@ class SamPt(nn.Module):
             "scores_per_frame": scores_per_frame.tolist(),
             "trajectories": trajectories,
             "visibilities": visibilities,
+            "query_points_to_visualize" : query_points_to_visual
         }
 
         return results_dict
@@ -487,6 +488,8 @@ class SamPt(nn.Module):
             # pass those points to the homography
             pts_homo2 = points_homographed(H_true_as, pts_coords_fr0[final_selected_points, :].cpu())
 
+            pts_homo2_without_inframe = points_homographed(H_true_as, pts_coords_fr0[visible_in_second_frame, :].cpu())
+
             # num of points to conserve
             if pts_homo2.shape[0] < 4 :
                 num_postive_pts = pts_homo2.shape[0]    # if not a lot of points are conserved, meaning backgrounds moves fast then not a lot of points of the background
@@ -513,14 +516,13 @@ class SamPt(nn.Module):
 
             sorted_index2 = torch.argsort(torch.norm(pts_coords_fr1[final_selected_points, :].cpu() - pts_homo2, dim = 1))[pts_homo2.shape[0] - num_postive_pts:]
             
+            sorted_index2_without_inframe = torch.argsort(torch.norm(pts_coords_fr1[visible_in_second_frame, :].cpu() - pts_homo2_without_inframe, dim = 1))[pts_homo2_without_inframe.shape[0] - num_postive_pts:]
+
 
             #print(f' equal : {pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame0}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame0)}')
             #print(f' equal 2 : {pts_coords_fr2[final_selected_points, :] == visible_point_coords_frame1}, : {torch.sum(pts_coords_fr1[final_selected_points, :] == visible_point_coords_frame0)}')
 
-            pts_homo2bis = points_homographed(H_true_as, visible_point_coords_frame0)
-
             print(f'sorting : {torch.sort(torch.norm(pts_coords_fr1[final_selected_points, :] - pts_homo2, dim = 1))}')
-            sorted_index2bis = torch.argsort(torch.norm(visible_point_coords_frame1 - pts_homo2bis, dim = 1))[num_pts*98//100:]
 
             #print(f'homo2 : {pts_homo2bis.shape}, {pts_homo2bis == pts_homo2}, {torch.sum(pts_homo2bis == pts_homo2)}')
             #print(f'sorted_index2 : {sorted_index2bis.shape}, {sorted_index2bis == sorted_index2}, {torch.sum(sorted_index2bis == sorted_index2)}')
@@ -528,15 +530,60 @@ class SamPt(nn.Module):
             outliers_fr0_with_in = pts_coords_fr0[final_selected_points, :][sorted_index2, :]
             outliers_fr1_with_in = pts_coords_fr1[final_selected_points, :][sorted_index2, :]
 
-            outliers_fr0 = visible_point_coords_frame0[sorted_index2bis, :]
-            outliers_fr1 = visible_point_coords_frame1[sorted_index2bis, :]
+            outliers_fr0_without_in = pts_coords_fr0[visible_in_second_frame, :][sorted_index2_without_inframe, :]
+            outliers_fr1_without_in = pts_coords_fr1[visible_in_second_frame, :][sorted_index2_without_inframe, :]
+
+            # to visualize impact of out-of-frame
+            query_points_to_visual = []
+            pos_outframe = torch.tensor([])
+            pos_intersect = torch.tensor([])
+            pos_with_crit = torch.tensor([])
+            negative_all_time = torch.tensor([])
+
+            for pts in outliers_fr0_without_in:
+                if not torch.any(torch.all(outliers_fr0_with_in == pts, dim=1)):
+                    pos_outframe = torch.cat((pos_outframe, pts.unsqueeze(0)))  
+                else :
+                    pos_intersect = torch.cat((pos_intersect, pts.unsqueeze(0))) # get points that are positive both times
+
+            if pos_intersect.shape[0] > 0: 
+                query_points_to_visual.append(pos_intersect)
+            else:
+                print('No common positive points')
+
+            for pts in outliers_fr0_with_in:
+                if not torch.any(torch.all(outliers_fr0_without_in == pts, dim=1)):
+                    pos_with_crit = torch.cat((pos_with_crit, pts.unsqueeze(0))) #get positive points that are pos iff there is out frame criteria but
+            
+            if pos_with_crit.shape[0] > 0: 
+                query_points_to_visual.append(pos_with_crit)
+            else:
+                print('No positive with criteria')
+
+            if pos_outframe.shape[0] > 0: 
+                query_points_to_visual.append(pos_outframe)
+            else:
+                print('No positive out-of-frame')
+
+            for pts in pts_coords_fr0:
+                if (not torch.any(torch.all(outliers_fr0_without_in == pts, dim=1))) & (not torch.any(torch.all(outliers_fr0_with_in == pts, dim=1))):
+                    negative_all_time = torch.cat((negative_all_time, pts.unsqueeze(0)))
+
+            query_points_to_visual.append(negative_all_time)
+
+            ### ----- First version ------
+            #pts_homo2bis = points_homographed(H_true_as, visible_point_coords_frame0)
+            #sorted_index2bis = torch.argsort(torch.norm(visible_point_coords_frame1 - pts_homo2bis, dim = 1))[num_pts*98//100:]
+
+            #outliers_fr0 = visible_point_coords_frame0[sorted_index2bis, :]
+            #outliers_fr1 = visible_point_coords_frame1[sorted_index2bis, :]
 
             print(f'out0 : {outliers_fr0_with_in.shape}')
             #print(f'out1 : {outliers_fr1.shape} {torch.sum(outliers_fr1 == outliers_fr1_with_in)}')
 
-            return outliers_fr0_with_in, outliers_fr1_with_in
+            return outliers_fr0_with_in, outliers_fr1_with_in, query_points_to_visual
 
-        visible_positive_points_0, _ = outliers_homograph(visible_point_coords_frame0, visible_point_coords_frame1, visibilities2, point_coords_frame0, point_coords_frame1)
+        visible_positive_points_0, _, query_points_to_visual = outliers_homograph(visible_point_coords_frame0, visible_point_coords_frame1, visibilities2, point_coords_frame0, point_coords_frame1)
         visible_positive_points_0  = visible_positive_points_0.reshape(1, visible_positive_points_0.shape[0], 2)
         zeros = torch.zeros(1, visible_positive_points_0.shape[1], 1)
 
@@ -546,7 +593,7 @@ class SamPt(nn.Module):
         trajectories, visibilities = self._track_points(images, visible_positive_points_0)
         _, logits, scores_per_frame = self._apply_sam_to_trajectories(images, trajectories, visibilities)
         scores = scores_per_frame.mean(dim=0)
-        return trajectories, visibilities, logits, scores, scores_per_frame
+        return trajectories, visibilities, logits, scores, scores_per_frame, query_points_to_visual
     
 
     def _forward(self, images, query_points):

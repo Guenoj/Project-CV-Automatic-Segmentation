@@ -337,6 +337,7 @@ def visualize_predictions(
         query_masks,
         query_scores,
         sam_masks_logits,
+        query_points_to_visual,
         sam_per_frame_scores=None,
         additional_log_images=None,
         additional_frame_annotations=None,
@@ -349,7 +350,7 @@ def visualize_predictions(
         visualize_query_masks=True,
         contour_radius=3,
         verbose=True,
-        log_fmt="mp4",
+        log_fmt="mp4"
 ):
     """
     Visualize predictions of query masks, predicted masks, and trajectories onto images and log them to wandb.
@@ -397,6 +398,8 @@ def visualize_predictions(
         The radius for the contour around each mask. Default is 3.
     verbose : bool, optional
         If True, log verbose visualisations to wandb. Takes more time. Default is True.
+    query_points_to_visual : List of tensor of shape (n_points, 2)
+        Allows visualization of methods out-of-frame points
 
     Returns
     -------
@@ -489,6 +492,21 @@ def visualize_predictions(
             wandb_caption = f"mask={mask_idx}: m2f_score={query_scores[mask_idx].item():.3f} query_frame={query_timestep}"
             wandb_image = wandb.Image(overlaid_frame, caption=wandb_caption)
             wandb.log({f"query-proposals/mask-{mask_idx}": wandb_image}, step=step)
+    
+    # 2.BIS Visualization of random query points
+    if verbose:
+        frame = frames[0]
+        for idx_pts, query_pts in enumerate(query_points_to_visual):
+            query_pts = torch.cat((torch.zeros((query_pts.shape[0],1)),query_pts), dim=1)
+            vis = torch.tensor(PointVisibilityType.VISIBLE) # For visualization All points are said visible but some on negative points are not
+            c = get_point_color(idx_pts, True, vis)
+            for random_query_pts in query_pts.numpy():
+                frame = cv2.circle(frame, (int(random_query_pts[1]), int(random_query_pts[2])), annot_size,
+                                   c, annot_line_width)
+        wandb_image = wandb.Image(frame, caption=wandb_caption, masks=wandb_masks)
+        wandb.log({f"verbose/query-random-pts": wandb_image}, step=step)
+        
+
 
     # 3.1. Visualize the predicted masks
     trajectories = torch.nan_to_num(trajectories, nan=-1.)
