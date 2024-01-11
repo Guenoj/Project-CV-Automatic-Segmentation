@@ -217,7 +217,8 @@ class SamPt(nn.Module):
         if logits.shape[-2:] != target_hw:
             logits = F.interpolate(logits, size=target_hw, mode="bilinear", align_corners=False)
         trajectories = trajectories * resize_factor
-
+        for d in query_points_to_visual:
+            d = d * resize_factor
         # masks = logits > .0
 
         if query_scores is not None:
