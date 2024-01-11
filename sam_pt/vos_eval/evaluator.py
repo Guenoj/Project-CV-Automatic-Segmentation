@@ -57,4 +57,5 @@ class SamPtEvaluator(VOSEvaluator):
             "trajectories": outputs["trajectories"],
             "visibilities": outputs["visibilities"],
             'scores': outputs['scores'],
+            'query_points_to_visualize' : outputs['query_points_to_visualize'],
         }

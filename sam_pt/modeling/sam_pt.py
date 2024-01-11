@@ -243,7 +243,7 @@ class SamPt(nn.Module):
             "scores_per_frame": scores_per_frame.tolist(),
             "trajectories": trajectories,
             "visibilities": visibilities,
-            "query_points_to_visualize" : query_points_to_visual
+            "query_points_to_visualize" : query_points_to_visual,
         }
 
         return results_dict
