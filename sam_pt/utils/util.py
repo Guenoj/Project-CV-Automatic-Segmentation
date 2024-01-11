@@ -495,7 +495,7 @@ def visualize_predictions(
     
     # 2.BIS Visualization of random query points
     if verbose:
-        frame = frames[0]
+        frame = frames[0].copy()
         for idx_pts, query_pts in enumerate(query_points_to_visual):
             query_pts = torch.cat((torch.zeros((query_pts.shape[0],1)),query_pts), dim=1)
             vis = torch.tensor(PointVisibilityType.VISIBLE) # For visualization All points are said visible but some on negative points are not
