@@ -219,8 +219,8 @@ class SamPt(nn.Module):
         trajectories = trajectories * resize_factor
         print(f'resize factor {resize_factor}')
         print(f' before loop : {query_points_to_visual}')
-        for d in query_points_to_visual:
-            d = d * resize_factor
+        for i in range(len(query_points_to_visual)):
+            query_points_to_visual[i] = query_points_to_visual[i] * resize_factor
         print(f' After loop : {query_points_to_visual}')
 
         # masks = logits > .0
