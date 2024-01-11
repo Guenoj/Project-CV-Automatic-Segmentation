@@ -496,10 +496,12 @@ def visualize_predictions(
     # 2.BIS Visualization of random query points
     if verbose:
         frame = frames[0].copy()
+        cmap_colors_qpts = cmap(list(range(query_points_to_visual)))
         for idx_pts, query_pts in enumerate(query_points_to_visual):
             query_pts = torch.cat((torch.zeros((query_pts.shape[0],1)),query_pts), dim=1)
-            vis = torch.tensor(PointVisibilityType.VISIBLE) # For visualization All points are said visible but some on negative points are not
-            c = get_point_color(idx_pts, True, vis)
+            # vis = torch.tensor(PointVisibilityType.VISIBLE) # For visualization All points are said visible but some on negative points are not
+            c = cmap_colors_qpts[idx_pts]
+            c = (int(c[0] * 255), int(c[1] * 255), int(c[2] * 255))
             for random_query_pts in query_pts.numpy():
                 frame = cv2.circle(frame, (int(random_query_pts[1]), int(random_query_pts[2])), annot_size,
                                    c, annot_line_width)
