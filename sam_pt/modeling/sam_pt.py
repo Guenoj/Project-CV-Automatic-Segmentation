@@ -474,6 +474,9 @@ class SamPt(nn.Module):
 
             H_true_as = compute_homography(visible_point_coords_frame0[sorted_index,:], visible_point_coords_frame1[sorted_index,:])
 
+            pts_homo = points_homographed(H_true_as, visible_point_coords_frame0)
+            sorted_index = torch.argsort(torch.norm(visible_point_coords_frame1 - pts_homo, dim = 1))[0:num_pts//30]
+
             # filter by points that are in-frame 78% of the video
             num_frames = visible.shape[0]  # Total number of frames
             num_points = visible.shape[1]  # Total number of points per frame
