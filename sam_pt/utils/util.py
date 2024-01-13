@@ -506,7 +506,7 @@ def visualize_predictions(
             c = cmap_colors_qpts[idx_pts]
             c = (int(c[0] * 255), int(c[1] * 255), int(c[2] * 255))
             for random_query_pts in query_pts.numpy():
-                frame = cv2.circle(frame, (int(random_query_pts[1]), int(random_query_pts[2])), 2,
+                frame = cv2.circle(frame, (int(random_query_pts[1]), int(random_query_pts[2])), 4,
                                    c, -1) # radius = 0 and thickness=1 to draw points
         wandb_image = wandb.Image(frame, caption=wandb_caption, masks=wandb_masks)
         wandb.log({f"verbose/query-random-pts": wandb_image}, step=step)
