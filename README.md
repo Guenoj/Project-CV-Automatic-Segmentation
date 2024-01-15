@@ -1,3 +1,10 @@
+# Auto-SAM-PT
+This is my github for the project of 2023 RecVis class. The goal of the project is to do Automatic Video Segmentation. It is build upon the code below. Then, I recommend to follow the same setup as below.
+
+
+
+
+
 # Segment Anything Meets Point Tracking
 
 > [**Segment Anything Meets Point Tracking**](https://arxiv.org/abs/2307.01197) \
