@@ -297,6 +297,7 @@ def evaluate(cfg):
             # }
             outputs = vos_evaluator.evaluate_video(video)
             pred_logits_list += outputs['logits']
+            query_points_to_visual =  outputs['query_points_to_visualize']
             if outputs['trajectories'] is not None:
                 pred_trajectories_list += outputs['trajectories'].permute(1, 0, 2, 3)
                 pred_visibilities_list += outputs['visibilities'].permute(1, 0, 2)
@@ -415,6 +416,7 @@ def evaluate(cfg):
                 positive_points_per_mask=positive_points_per_mask,
                 verbose=cfg.verbose_visualisations,
                 log_fmt=cfg.log_fmt,
+                query_points_to_visual = query_points_to_visual
             )
 
     print(f'Total processing time: {total_process_time}')
